@@ -210,7 +210,10 @@ class HashTable:
         :param key: The key whose associated value is to be deleted.
         :return: None.
         """
-        self._delete(key)
+        if key in self.table:
+            self._delete(key)
+        else:
+            raise(KeyError)
 
     def __contains__(self, key: str) -> bool:
         """
@@ -230,8 +233,28 @@ class HashTable:
         :param key: The key to hash.
         :param inserting: Specifies whether this operation is for insertion or lookup.
         :return: int representing the computed bin index.
-        """
-        pass
+        """ #TODO
+        bin_num_1 = self._hash_1(key)
+        if self.table[bin_num_1]:  # if node of hash key exists
+            if self.table[bin_num_1].deleted and inserting: # for insertion, if node has been deleted before
+                return bin_num_1
+            if not self.table[bin_num_1].deleted and not inserting:  # for lookup, if node hasn't been deleted before
+                return bin_num_1
+        else:
+            if inserting:
+                return bin_num_1
+        bin_num_2 = self._hash_2(key)
+        for i in range(0, self.capacity):  # probing sequence
+            probe = (bin_num_1 + i * bin_num_2) % self.capacity
+            if self.table[probe]:
+                if self.table[probe].deleted and inserting:
+                    return probe
+                if not self.table[probe].deleted and not inserting:
+                    return probe
+            else:
+                if inserting:
+                    return probe
+        
 
     def _insert(self, key: str, value: T) -> None:
         """
@@ -241,7 +264,8 @@ class HashTable:
         :param value: The associated value.
         :return: None.
         """
-        pass
+        self.table[self._hash(key)] = HashNode(key, value)
+        self.size += 1
 
     def _get(self, key: str) -> Optional[HashNode]:
         """
@@ -251,7 +275,7 @@ class HashTable:
         :return: HashNode if found, otherwise None.
         """
         for node in self.table:
-            if node.key is key:
+            if node and node.key is key:
                 return node
         return None
 
@@ -262,14 +286,15 @@ class HashTable:
         :param key: The key whose associated value is to be deleted.
         :return: None.
         """
-        pass
+        self.table[self._hash(key)].deleted = True
+        self.size -= 1
 
     def _grow(self) -> None:
         """
         Doubles the capacity of the hash table when the load factor reaches 0.5 or higher.
 
         :return: None.
-        """
+        """#TODO
         pass
 
     def update(self, pairs: List[Tuple[str, T]] = []) -> None:
@@ -278,7 +303,7 @@ class HashTable:
 
         :param pairs: A list of tuples (key, value) to be added or updated.
         :return: None.
-        """
+        """#TODO
         pass
 
     def keys(self) -> List[str]:
@@ -287,7 +312,11 @@ class HashTable:
 
         :return: A list of keys.
         """
-        pass
+        keys = []
+        for node in self.table:
+            if node and not node.deleted:
+                keys.append(node.key)
+        return keys
 
     def values(self) -> List[T]:
         """
@@ -295,7 +324,11 @@ class HashTable:
 
         :return: A list of stored values.
         """
-        pass
+        values = []
+        for node in self.table:
+            if node and not node.deleted:
+                values.append(node.value)
+        return values
 
     def items(self) -> List[Tuple[str, T]]:
         """
@@ -303,7 +336,12 @@ class HashTable:
 
         :return:  A list of tuples (key, value).
         """
-        pass
+        items = []
+        for node in self.table:
+            if node and not node.deleted:
+                items.append((node.key, node.value))
+        return items
+
 
     def clear(self) -> None:
         """
@@ -311,7 +349,8 @@ class HashTable:
 
         :return: None.
         """
-        pass
+        self.table: List[Optional[HashNode]] = [None] * self.capacity
+        self.size = 0
 
 def display_duplicates(data: List[List[str]], filenames: List[str]) -> HashTable:
     """
