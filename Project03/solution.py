@@ -6,6 +6,7 @@ starter.py
 
 from __future__ import annotations
 from typing import Optional, TypeVar, List, Tuple
+from xml.etree.ElementPath import prepare_parent
 
 T = TypeVar("T")
 
@@ -201,7 +202,9 @@ class HashTable:
         :param key: The key to search for.
         :return: The value associated with the key.
         """
-        return self._get(key).value
+        if self._get(key):
+            return self._get(key).value
+        raise KeyError
 
     def __delitem__(self, key: str) -> None:
         """
@@ -210,10 +213,10 @@ class HashTable:
         :param key: The key whose associated value is to be deleted.
         :return: None.
         """
-        if key in self.table:
+        if self._get(key):
             self._delete(key)
         else:
-            raise(KeyError)
+            raise KeyError
 
     def __contains__(self, key: str) -> bool:
         """
@@ -233,28 +236,27 @@ class HashTable:
         :param key: The key to hash.
         :param inserting: Specifies whether this operation is for insertion or lookup.
         :return: int representing the computed bin index.
-        """ #TODO
+        """
         bin_num_1 = self._hash_1(key)
-        if self.table[bin_num_1]:  # if node of hash key exists
-            if self.table[bin_num_1].deleted and inserting: # for insertion, if node has been deleted before
+        if self.table[bin_num_1]:  # if node exists at index
+            if self.table[bin_num_1].key == key:  # if key exists in hashtable
                 return bin_num_1
-            if not self.table[bin_num_1].deleted and not inserting:  # for lookup, if node hasn't been deleted before
-                return bin_num_1
+            if self.table[bin_num_1].deleted:
+                if inserting:
+                    return bin_num_1
         else:
-            if inserting:
-                return bin_num_1
+            return bin_num_1
         bin_num_2 = self._hash_2(key)
-        for i in range(0, self.capacity):  # probing sequence
+        for i in range(0, self.capacity):
             probe = (bin_num_1 + i * bin_num_2) % self.capacity
             if self.table[probe]:
-                if self.table[probe].deleted and inserting:
+                if self.table[probe].key == key:
                     return probe
-                if not self.table[probe].deleted and not inserting:
-                    return probe
+                if self.table[probe].deleted:
+                    if inserting:
+                        return probe
             else:
-                if inserting:
-                    return probe
-        
+                return probe
 
     def _insert(self, key: str, value: T) -> None:
         """
@@ -264,8 +266,17 @@ class HashTable:
         :param value: The associated value.
         :return: None.
         """
-        self.table[self._hash(key)] = HashNode(key, value)
-        self.size += 1
+        if self.table[self._hash(key, True)]:
+            if self.table[self._hash(key, True)].deleted:
+                self.table[self._hash(key, True)] = HashNode(key, value)
+                self.size += 1
+            else:
+                self.table[self._hash(key, True)].value = value
+        else:
+            self.table[self._hash(key, True)] = HashNode(key, value)
+            self.size += 1
+        if float(self.size / self.capacity) >= 0.5:
+            self._grow()
 
     def _get(self, key: str) -> Optional[HashNode]:
         """
@@ -274,10 +285,7 @@ class HashTable:
         :param key: The key to search for.
         :return: HashNode if found, otherwise None.
         """
-        for node in self.table:
-            if node and node.key is key:
-                return node
-        return None
+        return self.table[self._hash(key)]
 
     def _delete(self, key: str) -> None:
         """
@@ -286,7 +294,7 @@ class HashTable:
         :param key: The key whose associated value is to be deleted.
         :return: None.
         """
-        self.table[self._hash(key)].deleted = True
+        self.table[self._hash(key)] = HashNode(None, None, True)
         self.size -= 1
 
     def _grow(self) -> None:
@@ -294,8 +302,16 @@ class HashTable:
         Doubles the capacity of the hash table when the load factor reaches 0.5 or higher.
 
         :return: None.
-        """#TODO
-        pass
+        """
+        items = self.items()
+        self.capacity *= 2
+        self.table: List[Optional[HashNode]] = [None] * self.capacity
+        self.size = 0
+        while self.primes[self.prime_index] < self.capacity:
+            self.prime_index += 1
+        self.prime_index -= 1  # largest prime number index smaller than capacity
+        for item in items:
+            self._insert(item[0], item[1])
 
     def update(self, pairs: List[Tuple[str, T]] = []) -> None:
         """
@@ -303,8 +319,9 @@ class HashTable:
 
         :param pairs: A list of tuples (key, value) to be added or updated.
         :return: None.
-        """#TODO
-        pass
+        """
+        for key, val in pairs:
+            self._insert(key, val)
 
     def keys(self) -> List[str]:
         """
@@ -342,7 +359,6 @@ class HashTable:
                 items.append((node.key, node.value))
         return items
 
-
     def clear(self) -> None:
         """
         Clears all HashNodes from the table as if they never existed.
@@ -352,15 +368,50 @@ class HashTable:
         self.table: List[Optional[HashNode]] = [None] * self.capacity
         self.size = 0
 
+
 def display_duplicates(data: List[List[str]], filenames: List[str]) -> HashTable:
     """
-    FILL OUT DOCSTRING
+    Outputs duplicate images in a HashTable in the format {key: value}, where:
+        Keys are the filenames of the images to keep (i.e., the earliest occurrences of unique images in filenames).
+        Values are lists of duplicate filenames (including rotated versions), in the order they appeared.
+
+    :param data: A list of lists of four hash strings, corresponding to the hash results for each image rotated 0, 90, 180, and 270 degrees.
+    :param filenames: A list of corresponding filenames.
+    :return: A HashTable containing image duplicate information as described above.
     """
-    pass
+    rotations = HashTable()
+    dupes = HashTable()
+    for i in range(len(filenames)):
+        dupe_found = False
+        for image in data[i]:
+            if image in rotations:
+                dupes[rotations[image]].append(filenames[i])  # add file to dupe list
+                dupe_found = True
+                break
+            else:
+                rotations[image] = filenames[i]  # add rotated image to hashtable tracking rotations
+        if not dupe_found:
+            dupes[filenames[i]] = []
+    return dupes
 
 
 def generate_fan_chant(fan_chant: str, chant_words: List[str]) -> List[int]:
     """
-    FILL OUT DOCSTRING
+    A function that finds all index positions where permutations of chant_words appear in the fan chant.
+
+    :param fan_chant: A string representing the BTS fan chant.
+    :param chant_words: A list of strings representing the words we want to find in the fan chant.
+    :return: A list of integers containing the starting indices of any permutation of the words within the fan chant.
     """
-    pass
+    if not fan_chant or not chant_words:
+        return []
+    word_size = len(chant_words[0])
+    indices = []
+    for i in range(0, len(fan_chant) - word_size * len(chant_words) + 1):
+        words = fan_chant[i:(i + word_size * len(chant_words))]
+        for chant in chant_words:
+            if chant in words:
+                words = words[0:words.find(chant)] + words[(words.find(chant) + word_size):]
+        if not words:
+            indices.append(i)
+    return indices
