@@ -405,13 +405,44 @@ def generate_fan_chant(fan_chant: str, chant_words: List[str]) -> List[int]:
     """
     if not fan_chant or not chant_words:
         return []
-    word_size = len(chant_words[0])
-    indices = []
-    for i in range(0, len(fan_chant) - word_size * len(chant_words) + 1):
-        words = fan_chant[i:(i + word_size * len(chant_words))]
-        for chant in chant_words:
-            if chant in words:
-                words = words[0:words.find(chant)] + words[(words.find(chant) + word_size):]
-        if not words:
-            indices.append(i)
-    return indices
+    # word_size = len(chant_words[0])
+    # indices = []
+    # for i in range(0, len(fan_chant) - word_size * len(chant_words) + 1):
+    #     words = fan_chant[i:(i + word_size * len(chant_words))]
+    #     for chant in chant_words:
+    #         if chant in words:
+    #             words = words[0:words.find(chant)] + words[(words.find(chant) + word_size):]
+    #     if not words:
+    #         indices.append(i)
+    # return indices
+
+    chant_length = len(fan_chant)
+    list_length, word_length = len(chant_words), len(chant_words[0])
+
+    words_counter = HashTable()
+    for word in chant_words:
+        if word in words_counter:
+            words_counter[word] += 1
+        else:
+            words_counter[word] = 1
+    
+    result = []
+    for i in range(chant_length - list_length * word_length + 1):
+        
+        counter = HashTable()
+        result.append(i)
+        
+        for j in range(i, i + list_length * word_length, word_length):
+            
+            word = fan_chant[j:j + word_length]
+            
+            if word in counter:
+                counter[word] += 1
+            else:
+                counter[word] = 1
+            
+            if word not in words_counter or counter[word] > words_counter[word]:
+                result.pop()
+                break
+    
+    return result
