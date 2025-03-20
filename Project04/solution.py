@@ -32,11 +32,11 @@ class CircularDeque:
         self.capacity: int = capacity
         self.size: int = len(data)
         self.queue: List[T] = [None] * capacity
-        self.back: int = (self.size + front - 1) // self.capacity if data else None
+        self.back: int = (self.size + front - 1) % self.capacity if data else None
         self.front: int = front if data else None
 
         for index, value in enumerate(data):
-            self.queue[(index + front) // capacity] = value
+            self.queue[(index + front) % capacity] = value
 
     def __str__(self) -> str:
         """
@@ -110,14 +110,22 @@ class CircularDeque:
         :return: None.
         """
         self.size += 1
-        if front:
+        if self.size == 1:  # edge case for empty queue
+            self.front, self.back = 0, 0
+            self.queue[self.front] = value
+        elif front:
             if self.front == 0:
-                self.front = self.size - 1
-                self.queue[self.front] = value
+                self.front = self.capacity - 1
+            else:
+                self.front -= 1
+            self.queue[self.front] = value
         else:
-            if self.back == self.capacity:
+            if self.back == self.capacity - 1:
                 self.back = 0
-                self.queue[self.back] = value
+            else:
+                self.back += 1
+            self.queue[self.back] = value
+
         if self.size == self.capacity:
             self.grow()
 
@@ -129,17 +137,27 @@ class CircularDeque:
         :return: Removed item, None if empty.
         """
         value = None
-        if self.is_empty():
+        if self.is_empty():  # edge case for empty queue
             return value
+
+        self.size -= 1
 
         if front:
             value = self.front_element()
-            self.front += 1
+            if self.front == self.capacity - 1:
+                self.front = 0
+            else:
+                self.front += 1
         else:
             value = self.back_element()
-            self.back -= 1
-        if self.size <= self.capacity // 4 and self.capacity // 4 >= 4:
+            if self.back == 0:
+                self.back = self.capacity - 1
+            else:
+                self.back -= 1
+
+        if self.size <= self.capacity / 4 and self.capacity / 2 >= 4:
             self.shrink()
+
         return value
 
     def grow(self) -> None:
@@ -151,11 +169,21 @@ class CircularDeque:
         :return: None.
         """
         self.capacity *= 2
+        new_queue: List[T] = [None] * self.capacity
+
+        if self.is_empty():
+            self.queue = new_queue
+            return
+
+        for index, value in enumerate(self.queue):
+            if index >= self.front:  # if element is behind of front element
+                new_queue[index - self.front] = value
+            else:  # if element is in front of front element
+                new_queue[self.size - self.front + index] = value
+
         self.front = 0
         self.back = self.size - 1
-        new_queue: List[T] = [None] * self.capacity
-        for i in range(self.size):
-            new_queue[i] = self.queue[i]
+        self.queue = new_queue
 
     def shrink(self) -> None:
         """
@@ -166,26 +194,87 @@ class CircularDeque:
         :return: None.
         """
         self.capacity //= 2
+        new_queue: List[T] = [None] * self.capacity
+
+        if self.is_empty():
+            self.queue = new_queue
+            return
+
+        if self.front < self.back:  # if no circling
+            for index in range(self.front,self.back + 1):
+                new_queue[(index - self.front) % self.capacity] = self.queue[index]
+        else:
+            for index in range(self.front, len(self.queue)):  # loop over front to end of queue
+                new_queue[(index - self.front) % self.capacity] = self.queue[index]
+            for index in range(self.back + 1):  # circle back for rest of queue
+                new_queue[(self.size - self.front + index) % self.capacity] = self.queue[index]
+
         self.front = 0
         self.back = self.size - 1
-        new_queue: List[T] = [None] * self.capacity
-        for i in range(self.size):
-            new_queue[i] = self.queue[i]
-
-
+        self.queue = new_queue
 
 def find_max_wind_speeds(numbers: List[int], size: int) -> List[int]:
     """
-    INSERT DOCSTRINGS HERE!
+    Takes in a list of numbers and a sliding window size
+    and returns a list containing the maximum value of the
+    sliding window at each iteration step.
+
+    :param numbers: A list of numbers that the sliding window will
+        move through. Numbers can be negative or positive, including 0.
+    :param size: The size of the sliding window.
+    :return: A list containing the max number within the sliding window at each iteration step.
     """
-    pass
+    if len(numbers) < 2 or size == 1:  # edge case for empty or list with one item
+        return numbers
+
+    speeds = list()
+
+    # brute force approach
+    # for i in range(len(numbers) - size + 1):
+        # window = CircularDeque(numbers[i:i+size], 0, size)
+        # max_spd = None
+        # for j in range(size):
+        #     if not max_spd or max_spd < window.queue[j]:
+        #         max_spd = window.queue[j]
+        # speeds.append(max_spd)
+
+    # sliding window approach
+    window = CircularDeque(numbers[:size], 0, size)  # initialize sliding window
+    if window.front < window.back: # first window, if queue doesn't circle around
+        speeds.append(max(window.queue[window.front:window.back + 1]))
+    else:
+        speeds.append(max(window.queue[window.front:window.capacity] + window.queue[0:window.back + 1]))
+
+    for i in range(size, len(numbers)):  # continue to slide window
+        window.dequeue()
+        window.enqueue(numbers[i], False)
+        if window.front < window.back:
+            speeds.append(max(window.queue[window.front:window.back+1]))
+        else:
+            speeds.append(max(window.queue[window.front:window.capacity] + window.queue[0:window.back + 1]))
+
+    return speeds
     
 
 
 def max_wind_variability_score(wind_speeds: List[int]) -> int:
     """
-    INSERT DOCSTRINGS HERE!
+    Takes in a list of numbers and calculates the maximum
+    wind variability score by finding the largest sum of
+    non-adjacent numbers.
+
+    :param wind_speeds: A list of wind speeds that the algorithm will be applied on.
+    :return: An integer representing the maximum wind variability score.
     """
-    pass
+    if not wind_speeds:  # edge case for empty list
+        return 0
+    elif len(wind_speeds) <= 2:  # edge case for 2 or fewer items in list
+        return max(wind_speeds)
 
+    spds = [wind_speeds[0], max(wind_speeds[:2])]
 
+    for i in range(2, len(wind_speeds)):
+        # take prev spd and compare with sum of prev prev spd and cur spd
+        spds.append(max(spds[-1], spds[i-2] + wind_speeds[i]))
+
+    return spds[-1]
