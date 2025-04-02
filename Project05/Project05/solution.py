@@ -101,9 +101,14 @@ class AVLTree:
 
     def height(self, root: Node) -> int:
         """
-        INSERT DOCSTRING HERE
+        Calculates the height of a subtree in the AVL tree.
+
+        :param root: Node: The root node of the subtree whose height is being determined.
+        :return: The height of the subtree rooted at root.
         """
-        pass
+        if root is None or self.origin is None:
+            return -1
+
 
     def left_rotate(self, root: Node) -> Optional[Node]:
         """
