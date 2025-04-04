@@ -108,19 +108,57 @@ class AVLTree:
         """
         if root is None or self.origin is None:
             return -1
-
+        return root.height
 
     def left_rotate(self, root: Node) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Performs a left rotation on the subtree rooted at root, returning the new root after the rotation.
+
+        :param root: Node: The root node of the subtree to be rotated.
+        :return: The new root of the rotated subtree.
         """
-        pass
+        if root is None:  # edge case for none root
+            return root
+        if root.parent is not None:  # check if root has parent
+            root.right.parent = root.parent
+            root.parent.right = root.right  # parent's right child is left rotated
+        else:
+            root.right.parent = None
+            self.origin = root.right
+        if root.right:  # check if right child exists
+            rightLeftChild = root.right.left
+            root.parent = root.right
+            root.right.left = root
+            root.right = rightLeftChild
+            if rightLeftChild:
+                root.right.parent = root
+        return root.parent
+
 
     def right_rotate(self, root: Node) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Performs a right rotation on the subtree rooted at root, returning the new root after the rotation.
+
+        :param root: The root node of the subtree to be rotated.
+        :return: The new root of the rotated subtree.
         """
-        pass
+        if root is None:  # edge case for none root
+            return root
+        if root.parent is not None:  # check if root has parent
+            root.left.parent = root.parent
+            root.parent.left = root.left  # parent's left child is right rotated
+        else:
+            root.left.parent = None
+            self.origin = root.left
+        if root.left:  # check if left child exists
+            leftRightChild = root.left.right
+            root.parent = root.left
+            root.left.right = root
+            root.left = leftRightChild
+            if leftRightChild:
+                root.left.parent = root
+        return root.parent
+
 
     def balance_factor(self, root: Node) -> int:
         """
