@@ -511,9 +511,20 @@ class KNNClassifier:
     
     def get_k_neighbors(self, value: float) -> List[Tuple[float, str]]:
         """
-        INSERT DOCSTRING HERE
+        Finds the k closest neighbors to the given value using absolute differences.
+
+        :param value: The value for which to find the closest neighbors.
+        :return: A list containing the k closest neighbors in the form (node_value, node_classification).
         """
+        if not self.tree.origin or self.k == 0:
+            return []
+
+        kClosestNeighbors = []
+        for node in self.tree:
+            kClosestNeighbors.append((node.value, node.data))
         pass
+        return kClosestNeighbors
+
 
     def calculate_best_fit(self, neighbors: List[Tuple[float, str]], value: float) -> str:
         """
