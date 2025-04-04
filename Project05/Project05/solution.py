@@ -110,7 +110,12 @@ class AVLTree:
             return -1
         elif not root.left and not root.right:
             return 0
-        return root.height
+        elif root.left and not root.right:
+            return 1 + root.left.height
+        elif not root.left and root.right:
+            return 1 + root.right.height
+        else:
+            return 1 + max(root.left.height, root.right.height)
 
     def left_rotate(self, root: Node) -> Optional[Node]:
         """
@@ -121,6 +126,7 @@ class AVLTree:
         """
         if root is None:  # edge case for none root
             return root
+
         if root.parent is not None:  # check if root has parent
             root.right.parent = root.parent
             if root.parent.right == root:
@@ -130,6 +136,7 @@ class AVLTree:
         else:
             root.right.parent = None
             self.origin = root.right
+
         if root.right:  # check if right child exists
             rightLeftChild = root.right.left
             root.parent = root.right
@@ -137,6 +144,7 @@ class AVLTree:
             root.right = rightLeftChild
             if rightLeftChild:
                 root.right.parent = root
+
         root.height = 1 + max(self.height(root.left), self.height(root.right))
         root.parent.height = 1 + max(self.height(root.parent.left), self.height(root.parent.right))
         return root.parent
@@ -151,6 +159,7 @@ class AVLTree:
         """
         if root is None:  # edge case for none root
             return root
+
         if root.parent is not None:  # check if root has parent
             root.left.parent = root.parent
             if root.parent.left is root:  # check if root is left child
@@ -160,6 +169,7 @@ class AVLTree:
         else:
             root.left.parent = None
             self.origin = root.left
+
         if root.left:  # check if left child exists
             leftRightChild = root.left.right
             root.parent = root.left
@@ -167,6 +177,7 @@ class AVLTree:
             root.left = leftRightChild
             if leftRightChild:
                 root.left.parent = root
+
         root.height = 1 + max(self.height(root.left), self.height(root.right))
         root.parent.height = 1 + max(self.height(root.parent.left), self.height(root.parent.right))
         return root.parent
@@ -181,6 +192,7 @@ class AVLTree:
         """
         if not root:  # edge case for none root
             return 0
+
         return self.height(root.left) - self.height(root.right)
 
     def rebalance(self, root: Node) -> Optional[Node]:
@@ -192,7 +204,9 @@ class AVLTree:
         """
         if not root:  # edge case for none root
             return None
+
         balanceFactor = self.balance_factor(root)
+
         if 1 >= balanceFactor >= -1:  # if root is balanced already
             return root
 
@@ -260,7 +274,76 @@ class AVLTree:
         :param val: The value to be removed.
         :return: The root of the rebalanced subtree.
         """
-        pass
+        if not self.origin or not root:  # edge case for empty tree/none root
+            return None
+
+        if val == root.value:  # found value
+            if not root.left and not root.right:  # no children
+                self.size -= 1
+                if root == self.origin:  # edge case for root of whole tree
+                    self.origin = None
+                    return None
+
+                if root.parent and root.parent.left == root:
+                    root.parent.left = None
+                elif root.parent:
+                    root.parent.right = None
+                return None
+
+            elif root.left and not root.right:  # only left child
+                self.size -= 1
+                root.left.parent = root.parent
+
+                if root == self.origin:  # edge case for root of whole tree
+                    self.origin = root.left
+                    root.left.parent = None
+                    return root.left
+
+                if root.parent.left == root:
+                    root.parent.left = root.left
+                else:
+                    root.parent.right = root.left
+
+                return root.left
+
+            elif not root.left and root.right:  # only right child
+                self.size -= 1
+                root.right.parent = root.parent
+
+                if root == self.origin:  # edge case for root of whole tree
+                    self.origin = root.right
+                    root.right.parent = None
+                    return root.right
+
+                if root.parent.left == root:
+                    root.parent.left = root.right
+                else:
+                    root.parent.right = root.right
+
+                return root.right
+
+            else:  # both children
+                pred = root.left  # predecessor
+                while pred.right:  # log(n) because only looping through right subtree
+                    pred = pred.right
+
+                root.value = pred.value
+                root.data = pred.data
+
+                root.left = self.remove(root.left, pred.value)
+
+        elif val < root.value:  # search left
+            if root.left:
+                root.left = self.remove(root.left, val)
+        else:  # search right
+            if root.right:
+                root.right = self.remove(root.right, val)
+
+        if root:
+            root.height = 1 + max(self.height(root.left), self.height(root.right))
+            return self.rebalance(root)
+
+        return root
 
     def min(self, root: Node) -> Optional[Node]:
         """
