@@ -237,25 +237,25 @@ class AVLTree:
         :return: The root of the rebalanced subtree.
         """
         if not self.origin:  # edge case if empty tree
-            self.origin = Node(val)
+            self.origin = Node(value=val, data=data)
             self.size += 1
             return self.origin
 
         if not root:  # edge case if none root
             self.size += 1
-            return Node(val, parent=None, data=data)
+            return Node(value=val, parent=None, data=data)
 
         if root.value is val:  # if val already in tree
             return root
         elif val < root.value:
             if not root.left:  # check for open child slot
-                root.left = Node(val, root, data)
+                root.left = Node(value=val, parent=root, data=data)
                 self.size += 1
             else:  # continue traversal
                 root.left = self.insert(root.left, val, data)
         else:
             if not root.right:  # check for open child slot
-                root.right = Node(val, root, data)
+                root.right = Node(value=val, parent=root, data=data)
                 self.size += 1
             else:  # continue traversal
                 root.right = self.insert(root.right, val, data)
@@ -501,9 +501,13 @@ class KNNClassifier:
     ######################################## 
     def train(self, data: List[Tuple[float, str]]) -> None:
         """
-        INSERT DOCSTRING HERE
+        Trains the classifier by inserting each data point into the AVL tree.
+
+        :param data: List of tuples (value, classification).
+        :return: None.
         """
-        pass
+        for point in data:
+            self.tree.insert(self.tree.origin, point[0], point[1])
     
     def get_k_neighbors(self, value: float) -> List[Tuple[float, str]]:
         """
