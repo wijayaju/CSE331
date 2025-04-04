@@ -3,7 +3,7 @@ Project 5
 CSE 331 SS25 (Liu, Onsay)
 solution.py
 """
-
+import queue
 from collections import deque
 import math
 from queue import SimpleQueue
@@ -206,7 +206,6 @@ class AVLTree:
             return None
 
         balanceFactor = self.balance_factor(root)
-
         if 1 >= balanceFactor >= -1:  # if root is balanced already
             return root
 
@@ -217,7 +216,6 @@ class AVLTree:
             else:  # double right left
                 root.left = self.left_rotate(root.left)
                 new_root = self.right_rotate(root)
-
         else:  # right heavy, need left rotation
             childBalanceFactor = self.balance_factor(root.right)
             if childBalanceFactor <= 0:  # simple left
@@ -288,8 +286,8 @@ class AVLTree:
                     root.parent.left = None
                 elif root.parent:
                     root.parent.right = None
-                return None
 
+                return None
             elif root.left and not root.right:  # only left child
                 self.size -= 1
                 root.left.parent = root.parent
@@ -321,7 +319,6 @@ class AVLTree:
                     root.parent.right = root.right
 
                 return root.right
-
             else:  # both children
                 pred = root.left  # predecessor
                 while pred.right:  # log(n) because only looping through right subtree
@@ -331,7 +328,6 @@ class AVLTree:
                 root.data = pred.data
 
                 root.left = self.remove(root.left, pred.value)
-
         elif val < root.value:  # search left
             if root.left:
                 root.left = self.remove(root.left, val)
@@ -347,51 +343,132 @@ class AVLTree:
 
     def min(self, root: Node) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Returns the Node containing the smallest value in the subtree rooted at root.
+
+        :param root: Node: The root of the subtree in which to search for the minimum value.
+        :return: The Node holding the smallest value in the subtree.
         """
-        pass
+        if root is None:
+            return None
+
+        if root.left is None:
+            return root
+
+        return self.min(root.left)
 
     def max(self, root: Node) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Returns the Node containing the largest value in the subtree rooted at root.
+
+        :param root: Node: The root of the subtree in which to search for the maximum value.
+        :return: The Node holding the largest value in the subtree.
         """
-        pass
+        if root is None:
+            return None
+
+        if root.right is None:
+            return root
+
+        return self.max(root.right)
 
     def search(self, root: Node, val: T) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Searches for a node with value val in the subtree rooted at root.
+
+        :param root: Node: The root of the subtree in which to search.
+        :param val: The value to search for.
+        :return: The Node containing val if found, otherwise the potential parent node.
         """
-        pass
+        if root is None:  # edge case for none root
+            return None
+
+        if root.value is val:  # if found
+            return root
+        elif val < root.value:  # search left
+            if root.left:
+                return self.search(root.left, val)
+            return root
+        else:  # search right
+            if root.right:
+                return self.search(root.right, val)
+            return root
+
 
     def inorder(self, root: Node) -> Generator[Node, None, None]:
         """
-        INSERT DOCSTRING HERE
+        This function performs an inorder traversal (left, current, right) of the subtree rooted at root, generating the nodes one at a time using a Python generator.
+
+        :param root: Node: The root node of the current subtree being traversed.
+        :return: A generator yielding the nodes of the subtree in inorder.
         """
-        pass
+        if root is None:
+            return
+        if root.left:
+            yield from self.inorder(root.left)
+        if root:
+            yield root
+        if root.right:
+            yield from self.inorder(root.right)
 
     def __iter__(self) -> Generator[Node, None, None]:
         """
-        INSERT DOCSTRING HERE
+        This method makes the AVL tree class iterable, allowing you to use it in loops like for node in tree.
+
+        :return: A generator yielding the nodes of the tree in inorder.
         """
-        pass
+        return self.inorder(self.origin)
 
     def preorder(self, root: Node) -> Generator[Node, None, None]:
         """
-        INSERT DOCSTRING HERE
+        This function performs a preorder traversal (current, left, right) of the subtree rooted at root, generating the nodes one at a time using a Python generator.
+
+        :param root: Node: The root node of the current subtree being traversed.
+        :return: A generator yielding the nodes of the subtree in preorder.
         """
-        pass
+        if root is None:
+            return
+        if root:
+            yield root
+        if root.left:
+            yield from self.preorder(root.left)
+        if root.right:
+            yield from self.preorder(root.right)
 
     def postorder(self, root: Node) -> Generator[Node, None, None]:
         """
-        INSERT DOCSTRING HERE
+        This function performs a postorder traversal (left, right, current) of the subtree rooted at root, generating the nodes one at a time using a Python generator.
+
+        :param root: Node: The root node of the current subtree being traversed.
+        :return: A generator yielding the nodes of the subtree in postorder. A StopIteration exception is raised once all nodes have been yielded.
         """
-        pass
+        if root is None:
+            return
+        if root.left:
+            yield from self.postorder(root.left)
+        if root.right:
+            yield from self.postorder(root.right)
+        if root:
+            yield root
 
     def levelorder(self, root: Node) -> Generator[Node, None, None]:
         """
-        INSERT DOCSTRING HERE
+        This function performs a level-order (breadth-first) traversal of the subtree rooted at root, generating the nodes one at a time using a Python generator.
+
+        :param root: Node: The root node of the current subtree being traversed.
+        :return:  A generator yielding the nodes of the subtree in level-order. A StopIteration exception is raised once all nodes have been yielded.
         """
-        pass
+        if root is None:
+            return
+        frontierQueue = queue.SimpleQueue()
+        frontierQueue.put(root)
+        while not frontierQueue.empty():
+            cur_node = frontierQueue.get()
+            yield cur_node
+            if cur_node.left:
+                frontierQueue.put(cur_node.left)
+            if cur_node.right:
+                frontierQueue.put(cur_node.right)
+
         
 # Classifier
 class KNNClassifier:
