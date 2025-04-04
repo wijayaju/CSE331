@@ -224,34 +224,41 @@ class AVLTree:
         :param data: Optional data value for use in KNN classification.
         :return: The root of the rebalanced subtree.
         """
-        if not self.origin:
+        if not self.origin:  # edge case if empty tree
             self.origin = Node(val)
             self.size += 1
-            root = self.origin
+            return self.origin
 
-        if root:
-            if root.value is val:
-                return root
+        if not root:  # edge case if none root
+            self.size += 1
+            return Node(val, parent=None, data=data)
 
-            if val < root.value:
-                if not root.left:
-                    root.left = Node(val, root)
-                    self.size += 1
-                else:
-                    self.insert(root.left, val)
-            else:
-                if not root.right:
-                    root.right = Node(val, root)
-                    self.size += 1
-                else:
-                    self.insert(root.right, val)
+        if root.value is val:  # if val already in tree
+            return root
+        elif val < root.value:
+            if not root.left:  # check for open child slot
+                root.left = Node(val, root, data)
+                self.size += 1
+            else:  # continue traversal
+                root.left = self.insert(root.left, val, data)
+        else:
+            if not root.right:  # check for open child slot
+                root.right = Node(val, root, data)
+                self.size += 1
+            else:  # continue traversal
+                root.right = self.insert(root.right, val, data)
 
+        root.height = 1 + max(self.height(root.left), self.height(root.right))
         return self.rebalance(root)
 
 
     def remove(self, root: Node, val: T) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Removes the node with value val from the subtree rooted at root, balancing the subtree as needed. Returns the root of the updated subtree.
+
+        :param root: Node: The root of the subtree from which val is removed.
+        :param val: The value to be removed.
+        :return: The root of the rebalanced subtree.
         """
         pass
 
