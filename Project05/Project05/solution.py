@@ -108,6 +108,8 @@ class AVLTree:
         """
         if root is None or self.origin is None:
             return -1
+        elif not root.left and not root.right:
+            return 0
         return root.height
 
     def left_rotate(self, root: Node) -> Optional[Node]:
@@ -121,7 +123,10 @@ class AVLTree:
             return root
         if root.parent is not None:  # check if root has parent
             root.right.parent = root.parent
-            root.parent.right = root.right  # parent's right child is left rotated
+            if root.parent.right == root:
+                root.parent.right = root.right
+            else:
+                root.parent.left = root.right
         else:
             root.right.parent = None
             self.origin = root.right
@@ -132,6 +137,8 @@ class AVLTree:
             root.right = rightLeftChild
             if rightLeftChild:
                 root.right.parent = root
+        root.height = 1 + max(self.height(root.left), self.height(root.right))
+        root.parent.height = 1 + max(self.height(root.parent.left), self.height(root.parent.right))
         return root.parent
 
 
@@ -146,7 +153,10 @@ class AVLTree:
             return root
         if root.parent is not None:  # check if root has parent
             root.left.parent = root.parent
-            root.parent.left = root.left  # parent's left child is right rotated
+            if root.parent.left is root:  # check if root is left child
+                root.parent.left = root.left
+            else:
+                root.parent.right = root.left
         else:
             root.left.parent = None
             self.origin = root.left
@@ -157,26 +167,87 @@ class AVLTree:
             root.left = leftRightChild
             if leftRightChild:
                 root.left.parent = root
+        root.height = 1 + max(self.height(root.left), self.height(root.right))
+        root.parent.height = 1 + max(self.height(root.parent.left), self.height(root.parent.right))
         return root.parent
 
 
     def balance_factor(self, root: Node) -> int:
         """
-        INSERT DOCSTRING HERE
+        Computes the balance factor of the subtree rooted at root.
+
+        :param root: Node: The root node of the subtree for which the balance factor is computed.
+        :return: The balance factor of root.
         """
-        pass
+        if not root:  # edge case for none root
+            return 0
+        return self.height(root.left) - self.height(root.right)
 
     def rebalance(self, root: Node) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Rebalances the subtree rooted at root if it is unbalanced, returning the new root after rebalancing.
+
+        :param root: Node: The root of the subtree that may require rebalancing.
+        :return: The new root of the rebalanced subtree.
         """
-        pass
+        if not root:  # edge case for none root
+            return None
+        balanceFactor = self.balance_factor(root)
+        if 1 >= balanceFactor >= -1:  # if root is balanced already
+            return root
+
+        if balanceFactor >= 2:  # left heavy, need right rotation
+            childBalanceFactor = self.balance_factor(root.left)
+            if childBalanceFactor >= 0:  # simple right
+                new_root = self.right_rotate(root)
+            else:  # double right left
+                root.left = self.left_rotate(root.left)
+                new_root = self.right_rotate(root)
+
+        else:  # right heavy, need left rotation
+            childBalanceFactor = self.balance_factor(root.right)
+            if childBalanceFactor <= 0:  # simple left
+                new_root = self.left_rotate(root)
+            else:  # double left right
+                root.right = self.right_rotate(root.right)
+                new_root = self.left_rotate(root)
+
+        return new_root
+
 
     def insert(self, root: Node, val: T, data: str = None) -> Optional[Node]:
         """
-        INSERT DOCSTRING HERE
+        Inserts a new node with value val into the subtree rooted at root, balancing the subtree as needed. Returns the root of the updated subtree.
+
+        :param root: Node: The root of the subtree where val is inserted.
+        :param val: The value to be inserted.
+        :param data: Optional data value for use in KNN classification.
+        :return: The root of the rebalanced subtree.
         """
-        pass
+        if not self.origin:
+            self.origin = Node(val)
+            self.size += 1
+            root = self.origin
+
+        if root:
+            if root.value is val:
+                return root
+
+            if val < root.value:
+                if not root.left:
+                    root.left = Node(val, root)
+                    self.size += 1
+                else:
+                    self.insert(root.left, val)
+            else:
+                if not root.right:
+                    root.right = Node(val, root)
+                    self.size += 1
+                else:
+                    self.insert(root.right, val)
+
+        return self.rebalance(root)
+
 
     def remove(self, root: Node, val: T) -> Optional[Node]:
         """
