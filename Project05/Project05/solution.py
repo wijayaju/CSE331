@@ -519,24 +519,105 @@ class KNNClassifier:
         if not self.tree.origin or self.k == 0:
             return []
 
+        neighbors = []
         kClosestNeighbors = []
-        for node in self.tree:
-            kClosestNeighbors.append((node.value, node.data))
-        pass
+        closestNeighborIndex = 0
+        minimumDistance = float('inf')
+        ties = {}
+        for i, node in enumerate(self.tree):
+            neighbors.append((node.value, node.data))
+            distance = abs(node.value - value)
+            if self.floats_equal(distance, minimumDistance):
+                ties[i] = True
+                ties[closestNeighborIndex] = True
+                continue
+            elif distance < minimumDistance:
+                minimumDistance = distance
+                closestNeighborIndex = i
+            ties[i] = False
+
+        leftPointer = closestNeighborIndex - 1
+        rightPointer = closestNeighborIndex + 1
+        if not ties[closestNeighborIndex]:
+            kClosestNeighbors.append(neighbors[closestNeighborIndex])
+
+        while len(kClosestNeighbors) < self.k and (leftPointer >= 0 or rightPointer < len(neighbors)):
+            if leftPointer >= 0 and ties[leftPointer]:
+                leftPointer -= 1
+                continue
+            if rightPointer < len(neighbors) and ties[rightPointer]:
+                rightPointer += 1
+                continue
+            if leftPointer < 0 and rightPointer >= len(neighbors):
+                break
+            if leftPointer < 0:
+                kClosestNeighbors.append(neighbors[rightPointer])
+                rightPointer += 1
+                continue
+            if rightPointer >= len(neighbors):
+                kClosestNeighbors.append(neighbors[leftPointer])
+                leftPointer -= 1
+                continue
+
+            leftDistance = abs(neighbors[leftPointer][0] - value)
+            rightDistance = abs(neighbors[rightPointer][0] - value)
+
+            if self.floats_equal(leftDistance, rightDistance):
+                leftPointer -= 1
+                rightPointer += 1
+                continue
+            elif leftDistance < rightDistance:
+                kClosestNeighbors.append(neighbors[leftPointer])
+                leftPointer -= 1
+                continue
+            elif leftDistance > rightDistance:
+                kClosestNeighbors.append(neighbors[rightPointer])
+                rightPointer += 1
+                continue
+
         return kClosestNeighbors
 
 
     def calculate_best_fit(self, neighbors: List[Tuple[float, str]], value: float) -> str:
         """
-        INSERT DOCSTRING HERE
+        Determines the most likely classification for a given value based on neighbor weighting.
+
+        :param neighbors: A list of (node_value, node_classification) tuples.
+        :param value: The value to classify.
+        :return: The most likely classification as a string.
         """
-        pass
+        weight_sum = {}
+        max_weight = 0
+        best_classification = None
+        for node in neighbors:
+            nodeValue, classification = node
+            if self.floats_equal(nodeValue, value):
+                weight = float('inf')
+            else:
+                distance = abs(nodeValue - value)
+                weight = 1 / distance
+            if classification in weight_sum:
+                weight_sum[classification] += weight
+            else:
+                weight_sum[classification] = weight
+            if weight_sum[classification] > max_weight:
+                max_weight = weight_sum[classification]
+                best_classification = classification
+
+        return best_classification
+
     
     def classify(self, value: float) -> str:
         """
-        INSERT DOCSTRING HERE
+        Classifies a given value using the k-nearest neighbors method.
+
+        :param value: The value to classify.
+        :return: The predicted classification as a string.
         """
-        pass
+        kClosestNeighbors = self.get_k_neighbors(value)
+        if not kClosestNeighbors:
+            return None
+        return self.calculate_best_fit(kClosestNeighbors, value)
 
 
 ########################################################
