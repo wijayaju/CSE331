@@ -364,9 +364,63 @@ class Graph:
     # ============== Modify Graph Methods Below ==============#
     def bfs(self, begin_id: str, end_id: str) -> Tuple[List[str], float]:
         """
-        INSERT DOCSTRINGS HERE -- THEY ARE FOR POINTS
+        Perform a breadth-first search beginning at vertex with id begin_id and terminating at vertex with id end_id
+
+        :param begin_id: Starting vertex ID string from which to construct path
+        :param end_id: Ending vertex ID string to which to end path
+        :return: Tuple where first element is a list of vertex IDs specifying a path from start_id to end_id
+                 and the second element is the sum of the weights of the edges along the path traveled
         """
-        pass
+        self.unvisit_vertices()
+
+        start_vertex = self.get_vertex_by_id(begin_id)
+        end_vertex = self.get_vertex_by_id(end_id)
+
+        # Check if start and end vertices exist
+        if not start_vertex or not end_vertex:
+            return [], 0
+
+        # Edge case: start and end are the same
+        if begin_id == end_id:
+            return [begin_id], 0
+
+        # Initialize queue
+        vertex_queue = queue.Queue()
+        vertex_queue.put(begin_id)
+
+        # Mark start vertex as visited
+        start_vertex.visited = True
+
+        # Dictionary to keep track of back edges
+        back_edges = {}
+
+        # BFS begins
+        while not vertex_queue.empty():
+            current_id = vertex_queue.get()
+            current_vertex = self.get_vertex_by_id(current_id)
+
+            # Check all adjacent vertices
+            for adj_id, weight in current_vertex.adj.items():
+                adj_vertex = self.get_vertex_by_id(adj_id)
+
+                # If the adjacent vertex hasn't been visited
+                if not adj_vertex.visited:
+                    # Mark as visited
+                    adj_vertex.visited = True
+
+                    # Record the back edge
+                    back_edges[adj_id] = current_id
+
+                    # If we found the target vertex, build and return the path
+                    if adj_id == end_id:
+                        return self.build_path(back_edges, begin_id, end_id)
+
+                    # Add to queue for further exploration
+                    vertex_queue.put(adj_id)
+
+        # No path was found
+        return [], 0
+
 
     def a_star(self, begin_id: str, end_id: str,
                metric: Callable[[Vertex, Vertex], float]) -> Tuple[List[str], float]:
