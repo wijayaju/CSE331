@@ -400,7 +400,7 @@ class Graph:
             current_vertex = self.get_vertex_by_id(current_id)
 
             # Check all adjacent vertices
-            for adj_id, weight in current_vertex.adj.items():
+            for adj_id in current_vertex.adj:
                 adj_vertex = self.get_vertex_by_id(adj_id)
 
                 # If the adjacent vertex hasn't been visited
@@ -425,9 +425,68 @@ class Graph:
     def a_star(self, begin_id: str, end_id: str,
                metric: Callable[[Vertex, Vertex], float]) -> Tuple[List[str], float]:
         """
-        INSERT DOCSTRINGS HERE -- THEY ARE FOR POINTS
+        Perform an A* search beginning at vertex with id start_id and terminating at vertex with id end_id
+
+        :param begin_id: ID of vertex to start A* search
+        :param end_id: ID of vertex to terminate A* search
+        :param metric: the heuristic function which estimates the remaining distance at each vertex
+        :return: Tuple where first element is a list of vertex IDs specifying a path from start_id to end_id
+            and the second element is the sum of the weights of the edges along the path traveled
         """
-        pass
+        self.unvisit_vertices()
+
+        start_vertex = self.get_vertex_by_id(begin_id)
+        end_vertex = self.get_vertex_by_id(end_id)
+
+        # Check if start and end vertices exist
+        if not start_vertex or not end_vertex:
+            return [], 0
+
+        # Initialize key variables
+        openSet = PriorityQueue()
+        openSet.push(metric(start_vertex, end_vertex), start_vertex)
+        cameFrom = {}
+        gScore = {vertex: float('inf') for vertex in self.get_all_vertices()}
+        gScore[start_vertex] = 0
+
+        # Track which vertices have been added to openSet to avoid duplicates
+        in_queue = {start_vertex.id: True}
+
+        # A* begins
+        while not openSet.empty():
+            _, current = openSet.pop()
+            in_queue[current.id] = False
+
+            # Reached destination
+            if current.id == end_id:
+                return self.build_path(cameFrom, begin_id, end_id)
+
+            # Explore neighbors
+            for neighbor_id, weight in current.adj.items():
+                neighbor = self.get_vertex_by_id(neighbor_id)
+
+                # Calculate tentative g score
+                tentative_gScore = gScore[current] + weight
+
+                # Check if path is better than previous versions
+                if tentative_gScore < gScore[neighbor]:
+                    cameFrom[neighbor_id] = current.id
+                    gScore[neighbor] = tentative_gScore
+
+                    # Only consider unvisited neighbors for the queue
+                    if not neighbor.visited:
+                        # Calculate f-score
+                        f_score = tentative_gScore + metric(neighbor, end_vertex)
+
+                        # If neighbor is in queue, update priority; otherwise add it
+                        if neighbor_id in in_queue and in_queue[neighbor_id]:
+                            openSet.update(f_score, neighbor)
+                        else:
+                            openSet.push(f_score, neighbor)
+                            in_queue[neighbor_id] = True
+
+        # No path was found
+        return [], 0
 
 
 class PriorityQueue:
@@ -512,6 +571,84 @@ class PriorityQueue:
 
 def teleport(system_dict, start, end):
     """
-    INSERT DOCSTRING HERE
-    """
-    pass
+    Finds the shortest path in a galaxy to reach the destination provided.
+    
+    :param system_dict: chart of the galaxies; takes the following form:
+        {
+            galaxy_name: {
+                "graph": Graph object,
+                "arrival_teleport": vertex_name,
+                "departure_teleport": vertex_name,
+                "departure_destinations": [galaxy_names]
+            }
+        }
+    :param start: list of string containing exactly two elements, 
+        name of start galaxy, and name of start vertex inside the 
+        start galaxy, respectively.
+    :param end:  list of string containing exactly two elements,
+        name of end galaxy, and name of end vertex inside the end
+        galaxy, respectively
+    :return: distance
+    """#TODO
+
+    # Edge case: empty start/end lists
+    if not start or not end or len(start) != 2 or len(end) != 2:
+        return float('inf')
+
+    start_galaxy, start_vertex = start
+    end_galaxy, end_vertex = end
+
+    # Edge case: Invalid galaxy or vertex names
+    if start_galaxy not in system_dict or end_galaxy not in system_dict:
+        return float('inf')
+
+    # Same galaxy
+    if start_galaxy == end_galaxy:
+        galaxy_graph = system_dict[start_galaxy]["graph"]
+        start_v = galaxy_graph.get_vertex_by_id(start_vertex)
+        end_v = galaxy_graph.get_vertex_by_id(end_vertex)
+
+        if not start_v or not end_v:  # Check if vertices exist
+            return float('inf')
+
+        path, distance = galaxy_graph.a_star(start_vertex, end_vertex, lambda v1, v2: v1.euclidean_distance(v2))
+        return distance if path else float('inf')
+
+    total = 0
+
+    # Find distance in start galaxy
+    start_galaxy_info = system_dict[start_galaxy]
+    start_graph = start_galaxy_info["graph"]
+    start_to_departure_path, start_to_departure_dist = start_graph.a_star(
+        start_vertex,
+        start_galaxy_info["departure_teleport"],
+        lambda v1, v2: v1.euclidean_distance(v2)
+    )
+    if not start_to_departure_path and start_vertex != start_galaxy_info["departure_teleport"]:
+        # Can't reach departure teleport from start vertex
+        return float('inf')
+
+    # Find distance in end galaxy
+    end_galaxy_info = system_dict[end_galaxy]
+    end_graph = end_galaxy_info["graph"]
+    arrival_to_end_path, arrival_to_end_dist = end_graph.a_star(
+        end_galaxy_info["arrival_teleport"],
+        end_vertex,
+        lambda v1, v2: v1.euclidean_distance(v2)
+    )
+    if not arrival_to_end_path and end_vertex != end_galaxy_info["arrival_teleport"]:
+        # Can't reach end vertex from arrival teleport
+        return float('inf')
+
+    total += start_to_departure_dist + arrival_to_end_dist
+
+    for galaxy in system_dict:
+        galaxy_graph = system_dict[galaxy]["graph"]
+        if galaxy_graph == start_graph or galaxy_graph == end_graph:
+            continue
+        start_v = galaxy_graph.get_vertex_by_id(system_dict[galaxy]["arrival_teleport"])
+        end_v = galaxy_graph.get_vertex_by_id(system_dict[galaxy]["departure_teleport"])
+        path, distance = galaxy_graph.a_star(start_v.id, end_v.id, lambda v1, v2: v1.euclidean_distance(v2))
+        total += distance
+
+    return total
