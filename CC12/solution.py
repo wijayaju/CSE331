@@ -75,7 +75,33 @@ def dijkstras_algorithm(start, edges):
     Returns:
         List[int]: Shortest distances from start to each vertex; -1 if unreachable.
     """
-    pass
+    output = [float('inf') for vertex in range(len(edges))]  # each index is a vertex
+    output[start] = 0  # start index has distance of 0
+
+    mh = MinHeap([(vertex, output[vertex]) for vertex in range(len(edges))])
+
+    while not mh.is_empty():
+        vertex, dist = mh.remove()
+
+        if dist == float('inf'):
+            break
+
+        for edge in edges[vertex]:
+            destination, weight = edge
+
+            new_dist = dist + weight
+
+            if new_dist < output[destination]:
+                output[destination] = new_dist
+                mh.update(destination, new_dist)
+
+    for vertex, dist in enumerate(output):
+        if dist == float('inf'):
+            output[vertex] = -1
+
+    return output
+
+
 
 
 # ------------------------------------------
@@ -113,7 +139,54 @@ def a_star_algorithm(start_row, start_col, end_row, end_col, graph):
     Returns:
         List[List[int]]: Path from start to end as list of [row, col] pairs.
     """
-    pass
+    # Edge case: same start and end
+    if start_row == end_row and start_col == end_col:
+        return [[end_row, end_col]]
+
+    nodes = initialize_nodes(graph)
+    start_node = nodes[start_row][start_col]
+    end_node = nodes[end_row][end_col]
+
+    if start_node.value == 1 or end_node.value == 1:  # Edge case: no start/end node
+        return []
+
+    start_node.distance_from_start = 0
+    start_node.distance_to_end = calculate_manhattan_distance(start_node, end_node)
+    nodes[start_row][start_col] = start_node
+
+    open_set = [start_node]
+    mh = AStarMinHeap(open_set)
+    closed_set = set()
+
+    while not mh.is_empty():
+        # Get node with the lowest estimated total distance (min heap removes from root)
+        node = mh.remove()
+
+        if node.id == end_node.id:
+            return reconstruct_path(node)
+
+        closed_set.add(node.id)
+
+        for neighbor in get_neighboring_nodes(node, nodes):
+            # Skip if neighbor is obstacle or already processed
+            if neighbor.value == 1 or neighbor.id in closed_set:
+                continue
+
+            tentative_dist = node.distance_from_start + 1
+
+            # If neighbor not in open set or found better path
+            if not mh.contains_node(neighbor) or tentative_dist < neighbor.distance_from_start:
+                neighbor.came_from = node
+                neighbor.distance_from_start = tentative_dist
+                neighbor.estimated_distance_to_end = tentative_dist + calculate_manhattan_distance(neighbor, end_node)
+
+                if not mh.contains_node(neighbor):
+                    mh.insert(neighbor)
+                else:
+                    mh.update(neighbor)
+
+    # Edge case: no path
+    return []
 
 
 def reconstruct_path(end_node):
